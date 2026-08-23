@@ -43,13 +43,13 @@ impl EntryFile {
             table.with(Style::re_structured_text());
             table.modify(Columns::last(), Color::FG_CYAN);
             table.modify(Rows::first(), Color::FG_GREEN);
-            table.modify(Rows::first(), Alignment::center());
             if !m_date {
                 table.with(Remove::column(Columns::one(1)));
                 table.modify(Columns::one(1), Alignment::right());
             } else {
                 table.modify(Columns::one(2), Alignment::right());
             }
+            table.modify(Rows::first(), Alignment::center());
             println!("{}", table);
         }
     }
