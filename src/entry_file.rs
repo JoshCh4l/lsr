@@ -40,7 +40,7 @@ impl EntryFile {
             println!("{}", "The directory is empty".green())
         } else {
             let mut table = Table::new(files);
-            table.with(Style::re_structured_text());
+            table.with(Style::markdown());
             if !m_date {
                 table.with(Remove::column(Columns::one(1)));
                 table.modify(Columns::one(1), Alignment::right());
