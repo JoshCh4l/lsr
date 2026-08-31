@@ -1,16 +1,16 @@
 use chrono::{DateTime, Local};
-use serde::Serialize;
 use colored::Colorize;
-use std::fs::{DirEntry, metadata, read_dir};
+use serde::Serialize;
+use std::fs::{metadata, read_dir, DirEntry};
 use std::os::unix::fs::MetadataExt;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use strum::Display;
 use tabled::{
-    Table, Tabled,
     settings::{
+        object::{Columns, Rows},
         Alignment, Color, Remove, Style,
-        object::{Columns, Rows },
     },
+    Table, Tabled,
 };
 
 #[derive(Debug, Display, Serialize, PartialEq, Eq, PartialOrd, Ord)]
@@ -34,7 +34,7 @@ pub struct EntryFile {
 }
 
 impl EntryFile {
-    pub fn print_table(path: &PathBuf, all: bool, m_date: bool) {
+    pub fn print_table(path: &Path, all: bool, m_date: bool) {
         let files = EntryFile::get_files(path, all);
         if files.is_empty() {
             println!("{}", "The directory is empty".green())
@@ -58,22 +58,19 @@ impl EntryFile {
     pub fn get_files(path: &Path, all: bool) -> Vec<EntryFile> {
         let mut data = Vec::default();
         if let Ok(read_dir) = read_dir(path) {
-            for entry in read_dir {
-                if let Ok(file) = entry {
-                    if all {
-                        EntryFile::map_data(&mut data, file);
-                    } else {
-                        let temp = file
-                            .file_name()
-                            .into_string()
-                            .unwrap_or("unknown name".into());
+            for entry in read_dir.flatten() {
+                if all {
+                    EntryFile::map_data(&mut data, entry);
+                } else {
+                    let temp = entry
+                        .file_name()
+                        .into_string()
+                        .unwrap_or("unknown name".into());
 
-                        if temp.chars().next() == Some('.') {
-                            continue;
-                        } else {
-                            EntryFile::map_data(&mut data, file);
-                        }
+                    if temp.starts_with('.') {
+                        continue;
                     }
+                    EntryFile::map_data(&mut data, entry);
                 }
             }
         }
@@ -83,18 +80,20 @@ impl EntryFile {
     }
 
     fn map_data(data: &mut Vec<EntryFile>, file: DirEntry) {
-        if let Ok(meta) = metadata(&file.path()) {
+        if let Ok(meta) = metadata(file.path()) {
             data.push(EntryFile {
-                permissions: EntryFile::color_permissions(&EntryFile::permission_string(meta.mode(), &meta)),
-                name: { 
-
+                permissions: EntryFile::color_permissions(&EntryFile::permission_string(
+                    meta.mode(),
+                    &meta,
+                )),
+                name: {
                     let name = file
-                    .file_name()
-                    .into_string()
-                    .unwrap_or("unknown name".into()); 
+                        .file_name()
+                        .into_string()
+                        .unwrap_or("unknown name".into());
                     let icon = EntryFile::get_icon(&name, meta.is_dir());
                     let name = format!("{} {}", icon, name);
-                    
+
                     if meta.is_dir() {
                         name.green().to_string()
                     } else {
@@ -123,7 +122,6 @@ impl EntryFile {
         }
 
         match name.rsplit('.').next() {
-
             Some("rs") => "",
             Some("py") => "",
             Some("js") => "󰌞",
@@ -132,7 +130,7 @@ impl EntryFile {
             Some("json") => "󰘦",
 
             Some("md" | "markdown") => "󰍔",
-            
+
             Some("txt") => "󰈙",
 
             Some("pdf") => "",
@@ -182,8 +180,6 @@ impl EntryFile {
         }
     }
 
-
-
     fn permission_string(mode: u32, metadata: &std::fs::Metadata) -> String {
         let file_type = if metadata.is_dir() { 'd' } else { '-' };
 
@@ -211,8 +207,8 @@ impl EntryFile {
         }
 
         result
-    } 
-     
+    }
+
     fn color_permissions(permissions: &str) -> String {
         permissions
             .chars()
@@ -226,5 +222,4 @@ impl EntryFile {
             })
             .collect()
     }
-
 }
